@@ -36,7 +36,7 @@ export default function Home() {
         const signer = await provider.getSigner();
         setProvider(provider);
         setSigner(signer);
-        getTasks();
+        getTasks(provider);
       } catch (e) {
         console.log(e);
       }
@@ -45,23 +45,25 @@ export default function Home() {
     }
   }
 
-  async function getTasks() {
-    if (typeof window.ethereum !== "undefined") {
-      const contract = new ethers.Contract(
-        contractAddress,
-        contractABI,
-        provider
-      );
-      try {
-        let taskList = await contract.getAllTask();
-        console.log(taskList);
-        // setTaskList(taskList);
-        console.log("Tasks fetched successfully!");
-      } catch (error) {
-        console.error(error);
-      }
-    } else {
-      console.log("Please install metamask");
+  async function getTasks(_provider: BrowserProvider | null | undefined) {
+    const contract = new ethers.Contract(
+      contractAddress,
+      contractABI,
+      _provider
+    );
+    try {
+      let res = await contract.getAllTask();
+      let taskListString = JSON.stringify(res, null, 2);
+      let tasklist = JSON.parse(taskListString);
+      let formattedTasks = tasklist.map((item: any[], index: any) => ({
+        id: index,
+        name: item[0],
+        completed: item[1],
+      }));
+      setTaskList(formattedTasks);
+      console.log("Tasks fetched successfully!");
+    } catch (error) {
+      console.error(error);
     }
   }
 
@@ -77,6 +79,7 @@ export default function Home() {
       try {
         await contract.addTask(name);
         console.log("Task added successfully");
+        setName("");
       } catch (error) {
         console.error(error);
       }
@@ -112,7 +115,7 @@ export default function Home() {
               </div>
               <div className="flex justify-center border-b border-b-slate-950 w-full p-3">
                 <ul>
-                  {sampleList.map((task) => (
+                  {taskList.map((task: any) => (
                     <TodoItem key={task.id} {...task} />
                   ))}
                 </ul>
