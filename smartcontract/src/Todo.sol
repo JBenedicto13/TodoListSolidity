@@ -4,7 +4,6 @@ pragma solidity ^0.8.13;
 contract Todo {
 
     uint32 public idCount;
-    uint32[] public taskIds;
 
     constructor() {
         idCount = 1;
@@ -25,39 +24,50 @@ contract Todo {
         uint32 id
     );
 
-    struct Task {   
+    struct Task {
+        uint32 id;
         string title;
         bool completed;
     }
 
-    mapping(uint => Task) public taskList;
+    Task[] public taskList;
 
     function addTask(string memory _title) public {
-        taskList[idCount] = Task(_title, false);
-        taskIds.push(idCount);
+        taskList.push(Task(idCount, _title, false));
         emit TaskCreated(idCount, _title, false);
         idCount++;
     }
     
     function getAllTask() public view returns(Task[] memory) {
-        Task[] memory tasks = new Task[](taskIds.length);
-        for(uint i = 0; i < taskIds.length; i++) {
-            tasks[i] = taskList[taskIds[i]];
+        Task[] memory tasks = new Task[](taskList.length);
+        for(uint i = 0; i < taskList.length; i++) {
+            tasks[i] = taskList[i];
         }
         return tasks;
     }
 
     function toggleTask(uint32 _taskId) public {
         require(_taskId >= 1 && _taskId < idCount, "Specified task ID not found...");
-        bool currentValue = taskList[_taskId].completed;
-        taskList[_taskId].completed = !currentValue;
-        emit TaskToggled(_taskId, false);
+        for (uint32 i = 0; i < taskList.length; i++) {
+            if (taskList[i].id == _taskId) {
+                bool currentValue = taskList[i].completed;
+                taskList[i].completed = !currentValue;
+                emit TaskToggled(i, false);
+            }
+        }       
     }
 
-    function deleteTask(uint32 _taskId) public {
+    function deleteTask(uint32 _taskId) public returns(string memory result) {
         require(_taskId >= 1 && _taskId < idCount, "Specified task ID not found...");
-        delete(taskList[_taskId]);
-        emit TaskDeleted(_taskId);
+        
+        for (uint32 i = 0; i < taskList.length; i++) {
+            if (taskList[i].id == _taskId) {
+                taskList[i] = taskList[taskList.length - 1];
+                taskList.pop();
+                emit TaskDeleted(_taskId);
+                return "Task Deleted Successfully!";
+            }
+        }
     }
     
 }
