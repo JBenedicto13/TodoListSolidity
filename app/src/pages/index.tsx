@@ -14,6 +14,7 @@ export default function Home() {
     { id: 3, name: "Task 3", completed: false },
   ];
 
+  const [isLoading, setIsLoading] = useState(false);
   const [name, setName] = useState("");
   const [isConnected, setIsConnected] = useState(false);
   const [hasMetamask, setHasMetamask] = useState(false);
@@ -30,7 +31,8 @@ export default function Home() {
   async function handleConnect() {
     if (typeof window.ethereum !== "undefined") {
       try {
-        await ethereum.request({ method: "eth_requestAccounts" });
+        setIsLoading(true);
+        await ethereum.request({ method: "eth_requestAccounts" }).then(()=>setIsLoading(false));
         setIsConnected(true);
         const provider = new ethers.BrowserProvider(window.ethereum);
         const signer = await provider.getSigner();
@@ -38,6 +40,7 @@ export default function Home() {
         setSigner(signer);
         getTasks(provider);
       } catch (e) {
+        setIsLoading(false);
         console.log(e);
       }
     } else {
@@ -52,6 +55,7 @@ export default function Home() {
       _provider
     );
     try {
+      setIsLoading(true);
       let res = await contract.getAllTask();
       let taskListString = JSON.stringify(res, null, 2);
       let tasklist = JSON.parse(taskListString);
@@ -61,8 +65,10 @@ export default function Home() {
         completed: item[1],
       }));
       setTaskList(formattedTasks);
+      setIsLoading(false);
       console.log("Tasks fetched successfully!");
     } catch (error) {
+      setIsLoading(false);
       console.error(error);
     }
   }
@@ -77,10 +83,13 @@ export default function Home() {
         signer
       );
       try {
-        await contract.addTask(name);
-        console.log("Task added successfully");
+        setIsLoading(true);
+        await contract.addTask(name).then(()=>setIsLoading(false));
+        alert("Task added successfully");
+        window.location.reload();
         setName("");
       } catch (error) {
+        setIsLoading(false);
         console.error(error);
       }
     } else {
@@ -92,6 +101,9 @@ export default function Home() {
     <main
       className={`flex min-h-screen flex-col items-center p-24 ${inter.className}`}
     >
+      {isLoading && <div id="loading-spinner" className="z-50 fixed inset-0 flex items-center justify-center bg-black bg-opacity-50">
+        <div className="animate-spin rounded-full h-10 w-10 border-t-4 border-blue-500"></div>
+      </div>}
       <h1 className="pb-5">Todo List DApp using Amoy Testnet</h1>
       <button onClick={()=>console.log(taskList)}>Get TaskList</button>
       {hasMetamask ? (
@@ -117,7 +129,7 @@ export default function Home() {
               <div className="flex justify-center border-b border-b-slate-950 w-full p-3">
                 <ul>
                   {taskList.map((task: any) => (
-                    <TodoItem key={task.id} {...task} />
+                    <TodoItem key={task.id} {...task} signer={signer} setIsLoading={setIsLoading} isLoading={isLoading} />
                   ))}
                 </ul>
               </div>
